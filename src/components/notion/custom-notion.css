@@ -1,0 +1,11 @@
+:root {
+    --notion-max-width: 1000px;
+}
+
+.notion-page {
+    margin: 0;
+}
+
+.notion-page-scroller {
+    align-items: start;
+}

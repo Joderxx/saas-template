@@ -1,0 +1,208 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String          @id @default(cuid())
+  name               String?
+  email              String          @unique
+  password           String?
+  hasChangedPassword Boolean         @default(false)
+  emailVerified      DateTime?
+  image              String?
+  accounts           Account[]
+  sessions           Session[]
+  // Optional for WebAuthn support
+  Authenticator      Authenticator[]
+
+  roleId String?
+
+  productType       ProductType @default(FREE)
+  endSubscriptionAt DateTime?
+
+  totalMoney         Int @default(0)
+  monthlyMoney       Int @default(0)
+  totalActualMoney   Int @default(0)
+  monthlyActualMoney Int @default(0)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastLoginAt DateTime? @default(now())
+  forbidden   Boolean   @default(false)
+
+  stripeCustomerId String?
+
+  ApiKey ApiKey[]
+}
+
+enum ProductType {
+  FREE
+  PRO_MONTHLY
+  PRO_YEARLY
+  PRO_FIXED
+}
+
+enum TimeCycle {
+  NONE
+  WEEKLY
+  MONTHLY
+  YEARLY
+  PERMANENT
+}
+
+model Product {
+  id              String      @id
+  productType     ProductType @default(FREE)
+  timeCycle       TimeCycle   @default(NONE)
+  increaseSeconds Int         @default(0)
+  discount        Int         @default(0)
+  locales         Json
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  order           Int         @default(0)
+  stripeInfo      Json?
+  aifadianInfo    Json?
+  role            String      @default("USER")
+  Order           Order[]
+}
+
+model Order {
+  id      String @id @default(cuid())
+  orderId String @unique
+  email   String
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  price    Int     @default(0)
+  simulate Boolean @default(false)
+  type     String  @default("stripe")
+
+  createdAt DateTime @default(now())
+}
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  name      String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  key       String   @unique
+  createdAt DateTime @default(now())
+}
+
+model UserRole {
+  id          String   @id
+  name        String?
+  permissions String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+// Optional for WebAuthn support
+model Authenticator {
+  credentialID         String  @unique
+  userId               String
+  providerAccountId    String
+  credentialPublicKey  String
+  counter              Int
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, credentialID])
+}
+
+model Subscribe {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Blog {
+  id            String   @id @default(cuid())
+  description   String
+  notionHerf    String
+  order         Int      @default(0)
+  top           Boolean  @default(false)
+  group         String   @default("")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  hasAuth       Boolean  @default(false)
+  role          String[] @default([])
+  localeContent Json?
+}
+
+model Docs {
+  id            String   @id @default(cuid())
+  description   String
+  notionHerf    String
+  group         String   @default("")
+  order         Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  hasAuth       Boolean  @default(false)
+  role          String[] @default([])
+  localeContent Json?
+}
+
+model DownloadProductInfo {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  url         String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
